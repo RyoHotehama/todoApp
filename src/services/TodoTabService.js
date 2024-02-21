@@ -93,6 +93,7 @@ export default class TodoTabService {
     try {
       const jsonValue = await AsyncStorage.getItem('@tabKey');
       const jsonParse = jsonValue ? JSON.parse(jsonValue) : [];
+      jsonParse.sort((a, b) => (a.name > b.name ? 1 : -1));
 
       return jsonParse;
     } catch (e) {

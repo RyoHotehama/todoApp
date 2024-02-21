@@ -20,15 +20,13 @@ const styles = StyleSheet.create({
  * TodoリストItem
  *
  * @export
- * @param {bool} complete Todoタスク完了フラグ
+ * @param {any} navigation
  * @param {string} taskId TodoタスクID
  * @param {string} todoTitle Todoタイトル
- * @param {(taskId: string, complete: bool) => void} checkmarkTapped チェックマーク押下時の処理
- * @param {(taskId: string, todoTitle: string) => void} listItemTapped リストタップ時の処理
  * @param {(taskId: string) => void} deleteBtnTapped 削除ボタン押下時の処理
  * @return {TodoListItem}
  */
-export default function TodoListItem({ complete, taskId, todoTitle, checkmarkTapped, listItemTapped, deleteBtnTapped }) {
+export default function TodoListItem({ navigation, taskId, todoTitle, deleteBtnTapped, tabName }) {
   /**
    * ボタン押下処理
    *
@@ -42,10 +40,9 @@ export default function TodoListItem({ complete, taskId, todoTitle, checkmarkTap
   }
   return (
     <SwipeableRow onPress={btnTapped}>
-      <TouchableOpacity onPress={() => listItemTapped(taskId, todoTitle)} activeOpacity={1}>
+      <TouchableOpacity onPress={() => navigation.navigate('Map', { taskId: taskId, tabName: tabName })} activeOpacity={1}>
         <ListItem topDivider style={{ width: '100%' }}>
           <ListItem.Content style={styles.listItem}>
-            <Checkmark complete={complete} onPress={(complete) => checkmarkTapped(taskId, complete)}></Checkmark>
             <ListItem.Title style={styles.listItemTitle}>{todoTitle}</ListItem.Title>
           </ListItem.Content>
         </ListItem>

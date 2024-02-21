@@ -1,27 +1,57 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useLayoutEffect } from 'react';
-import { Alert, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import TabListItem from '../components/TabListItem';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import TextInputDialog from '../components/TextInputDialog';
 import TodoTabService from '../services/TodoTabService';
 import { TabContext } from '../contexts/TabContext';
+import ModalSelector from 'react-native-modal-selector';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F2F2F7',
   },
+  overlayStyle: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  optionContainerStyle: {
+    marginVertical: 80,
+    paddingHorizontal: 0,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+  },
+  optionStyle: {
+    paddingVertical: 20,
+    borderBottomWidth: 0.3,
+  },
+  optionTextStyle: {
+    color: '#000',
+    fontSize: 17,
+  },
+  cancelStyle: {
+    paddingVertical: 15,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+  },
+  cancelTextStyle: {
+    color: 'rgb(0,118,255)',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  sectionTextStyle: {
+    color: '#666',
+    fontSize: 19,
+  },
+  sectionStyle: {
+    borderBottomWidth: 0.5,
+  },
 });
 
-let selectedEditTabKey = '';
-let selectedEditTabName = '';
-
 export default function TabScreen({ navigation }) {
+  const [distance, setDistance] = React.useState(0);
   const [tabList, setTabList] = React.useState([]);
-  const [visibleAddTabAlert, setVisibleAddTabAlert] = React.useState(false);
-  const [visibleEditTabAlert, setVisibleEditTabAlert] = React.useState(false);
+  const data = Array.from({ length: 20 }, (_, i) => ({ key: i + 1, label: `${i + 1}km` }));
 
   const { tabReload } = React.useContext(TabContext);
 
@@ -29,9 +59,23 @@ export default function TabScreen({ navigation }) {
     navigation.setOptions({
       headerRight: () => {
         return (
-          <TouchableOpacity style={{ marginRight: 15 }} onPress={() => setVisibleAddTabAlert(true)}>
-            <Icon name="plus" color={'white'} size={25}></Icon>
-          </TouchableOpacity>
+          <ModalSelector
+            onChange={(value) => setDistance(value.key)}
+            data={data}
+            animationType="fade"
+            ref={(ref) => (selector = ref)}
+            cancelText="キャンセル"
+            overlayStyle={styles.overlayStyle}
+            backdropPressToClose={true}
+            optionContainerStyle={styles.optionContainerStyle}
+            optionStyle={styles.optionStyle}
+            optionTextStyle={styles.optionTextStyle}
+            cancelStyle={styles.cancelStyle}
+            cancelTextStyle={styles.cancelTextStyle}
+            sectionTextStyle={styles.sectionTextStyle}
+            sectionStyle={styles.sectionStyle}>
+            <Icon name="plus" color={'white'} size={25} style={{ marginRight: 15 }}></Icon>
+          </ModalSelector>
         );
       },
     });
@@ -49,19 +93,6 @@ export default function TabScreen({ navigation }) {
       }
     })();
   }, []);
-
-  /**
-   * タブ編集ダイアログ表示
-   *
-   * @param {string} editTabKey 編集するタブのKey
-   * @param {string} editTabName 編集するタブのタブ名
-   */
-  function showEditTodoAlert(editTabKey, editTabName) {
-    selectedEditTabKey = editTabKey;
-    selectedEditTabName = editTabName;
-
-    setVisibleEditTabAlert(true);
-  }
 
   /**
    * タブ追加処理
@@ -84,29 +115,6 @@ export default function TabScreen({ navigation }) {
   }
 
   /**
-   * タブ編集処理
-   *
-   * @param {string} tabName 編集後のタブ名
-   */
-  async function editTab(tabName) {
-    try {
-      const todoTabService = new TodoTabService();
-      await todoTabService.editTab(selectedEditTabKey, tabName);
-
-      const storageTabList = await todoTabService.getTabList();
-
-      setTabList(storageTabList);
-
-      tabReload.set(true);
-    } catch (e) {
-      Alert.alert('エラー', 'タブの編集に失敗しました', [{ text: 'OK' }]);
-    }
-
-    selectedEditTabKey = '';
-    selectedEditTabName = '';
-  }
-
-  /**
    * タブ削除処理
    *
    * @param {string} tabKey 削除するタブのキー
@@ -125,39 +133,28 @@ export default function TabScreen({ navigation }) {
     }
   }
 
+  useEffect(() => {
+    const handleChange = async (value) => {
+      await addTab(value);
+    };
+
+    if (distance) {
+      let tabListNames = tabList.map((item) => item.name);
+      if (tabListNames.includes(distance)) {
+        return Alert.alert('エラー', '既に登録済みです。', [{ text: 'OK' }]);
+      }
+
+      handleChange(distance);
+    }
+  }, [distance]);
+
   const renderItem = ({ item }) => {
-    return <TabListItem tabKey={item.key} tabTitle={item.name} listItemTapped={showEditTodoAlert} deleteBtnTapped={deleteTab}></TabListItem>;
+    return <TabListItem tabKey={item.key} tabTitle={item.name} deleteBtnTapped={deleteTab}></TabListItem>;
   };
   return (
     <View style={styles.container}>
       <FlatList contentContainerStyle={{ marginTop: 30 }} data={tabList} renderItem={renderItem} keyExtractor={(item) => item.key} />
-      <TextInputDialog
-        visible={visibleAddTabAlert}
-        title={'タブ追加'}
-        description={'追加するタブ名を入力してください'}
-        placeholder={'20文字以内'}
-        maxLength={20}
-        cancelCallback={() => {
-          setVisibleAddTabAlert(false);
-        }}
-        okCallback={async (text) => {
-          await addTab(text);
-          setVisibleAddTabAlert(false);
-        }}></TextInputDialog>
-      <TextInputDialog
-        visible={visibleEditTabAlert}
-        defaultValue={selectedEditTabName}
-        title={'タブ編集'}
-        description={'編集するタブ名を入力してください'}
-        placeholder={'20文字以内'}
-        maxLength={20}
-        cancelCallback={() => {
-          setVisibleEditTabAlert(false);
-        }}
-        okCallback={async (text) => {
-          await editTab(text);
-          setVisibleEditTabAlert(false);
-        }}></TextInputDialog>
+      <ModalSelector data={data} style={{ display: 'none' }} />
       <StatusBar style="light" />
     </View>
   );

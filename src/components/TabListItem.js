@@ -20,11 +20,10 @@ const styles = StyleSheet.create({
  * @export
  * @param {string} tabKey tabキー
  * @param {string} tabTitle tabタイトル
- * @param {(tabKey: string, tabTitle: string) => void} listItemTapped リストタップ時の処理
  * @param {(tabKey: string) => void} deleteBtnTapped 削除ボタン押下時の処理
  * @return {TabListItem}
  */
-export default function TabListItem({ tabKey, tabTitle, listItemTapped, deleteBtnTapped }) {
+export default function TabListItem({ tabKey, tabTitle, deleteBtnTapped }) {
   /**
    * ボタン押下処理
    *
@@ -38,14 +37,10 @@ export default function TabListItem({ tabKey, tabTitle, listItemTapped, deleteBt
   }
   return (
     <SwipeableRow onPress={btnTapped}>
-      <TouchableOpacity
-        onPress={() => {
-          listItemTapped(tabKey, tabTitle);
-        }}
-        activeOpacity={1}>
+      <TouchableOpacity activeOpacity={1}>
         <ListItem topDivider style={{ width: '100%' }}>
           <ListItem.Content style={styles.listItem}>
-            <ListItem.Title style={styles.listItemTitle}>{tabTitle}</ListItem.Title>
+            <ListItem.Title style={styles.listItemTitle}>{tabTitle}km</ListItem.Title>
           </ListItem.Content>
         </ListItem>
       </TouchableOpacity>

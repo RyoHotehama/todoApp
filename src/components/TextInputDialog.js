@@ -13,7 +13,7 @@ import Dialog from 'react-native-dialog';
  * @param {string}            placeholder     プレースホルダー（任意）
  * @param {number}            maxLength       入力可能文字数
  * @param {() => void}        cancelCallback  キャンセルボタン押下時の処理
- * @param {(string) => void)} okCallback      OKボタン押下時の処理
+ * @param {(string) => void} okCallback      OKボタン押下時の処理
  * @return {TextInputDialog}
  */
 export default function TextInputDialog({ visible, defaultValue = '', title, description, placeholder = '', maxLength, cancelCallback, okCallback }) {

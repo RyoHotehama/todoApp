@@ -9,8 +9,6 @@ import TextInputDialog from '../components/TextInputDialog';
 import TodoTabService from '../services/TodoTabService';
 import { TabContext } from '../contexts/TabContext';
 import TodoTaskService from '../services/TodoTaskService';
-import InitTodoTab from '../jsons/InitTodoTab.json';
-import InitTodoTask from '../jsons/InitTodoTask.json';
 
 const styles = StyleSheet.create({
   container: {
@@ -20,6 +18,7 @@ const styles = StyleSheet.create({
 });
 
 let selectedTabKey = '';
+let selectedTabName = '';
 let selectedEditTaskId = '';
 let selectedEditTaskName = '';
 
@@ -35,7 +34,7 @@ export default function HomeScreen({ navigation }) {
   const [visibleAddTodoAlert, setVisibleAddTodoAlert] = React.useState(false);
   const [visibleEditTodoAlert, setVisibleEditTodoAlert] = React.useState(false);
 
-  const { tabReload } = React.useContext(TabContext);
+  const { tabReload, mapReload } = React.useContext(TabContext);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -55,18 +54,6 @@ export default function HomeScreen({ navigation }) {
         const todoTabService = new TodoTabService();
         const todoTaskService = new TodoTaskService();
 
-        // 初期設定Todo登録処理
-        const initTabList = await todoTabService.getTabList();
-        if (!initTabList.length) {
-          for (const todoTabKey in InitTodoTab) {
-            await todoTabService.addTab(InitTodoTab[todoTabKey].name, InitTodoTab[todoTabKey].key);
-          }
-
-          for (const todoTaskKey in InitTodoTask) {
-            await todoTaskService.addTask(InitTodoTask[todoTaskKey].key, InitTodoTask[todoTaskKey].name);
-          }
-        }
-
         // タブ取得処理
         const storageTabList = await todoTabService.getTabList();
         setTabList(storageTabList);
@@ -76,10 +63,12 @@ export default function HomeScreen({ navigation }) {
         setTaskList(storageTaskList);
 
         selectedTabKey = storageTabList.length ? storageTabList[0].key : '';
+        selectedTabName = storageTabList.length ? storageTabList[0].name : '';
       } catch (e) {
         setTabList([]);
         setTaskList([]);
         selectedTabKey = '';
+        selectedTabName = '';
       }
     })();
   }, []);
@@ -89,7 +78,7 @@ export default function HomeScreen({ navigation }) {
     const tabListRoutes = tabList.map((tabObj) => {
       return {
         key: tabObj.key,
-        title: tabObj.name,
+        title: tabObj.name + 'km',
       };
     });
 
@@ -100,6 +89,7 @@ export default function HomeScreen({ navigation }) {
     0 <= selectedTabIndex ? setIndex(selectedTabIndex) : setIndex(0);
 
     selectedTabKey = tabList.length ? (0 <= selectedTabIndex ? tabList[selectedTabIndex].key : tabList[0].key) : '';
+    selectedTabName = tabList.length ? (0 <= selectedTabIndex ? tabList[selectedTabIndex].name : tabList[0].name) : '';
   }, [tabList]);
 
   /**
@@ -132,6 +122,24 @@ export default function HomeScreen({ navigation }) {
       })();
     }
   }, [tabReload]);
+
+  // タブ更新時に実行
+  useEffect(() => {
+    if (mapReload.get) {
+      (async function () {
+        try {
+          const todoTaskService = new TodoTaskService();
+          const storageTaskList = await todoTaskService.getTaskList();
+
+          setTaskList(storageTaskList);
+        } catch (e) {
+          setTaskList([]);
+        } finally {
+          mapReload.set(false);
+        }
+      })();
+    }
+  }, [mapReload]);
 
   /**
    * タスク追加処理
@@ -209,12 +217,11 @@ export default function HomeScreen({ navigation }) {
   const renderItem = ({ item }) => {
     return (
       <TodoListItem
-        complete={item.complete}
+        navigation={navigation}
         taskId={item.id}
         todoTitle={item.name}
-        checkmarkTapped={(taskId, complete) => checkTask(taskId, !complete)}
-        listItemTapped={showEditTaskAlert}
-        deleteBtnTapped={deleteTask}></TodoListItem>
+        deleteBtnTapped={deleteTask}
+        tabName={selectedTabName}></TodoListItem>
     );
   };
 
@@ -256,7 +263,8 @@ export default function HomeScreen({ navigation }) {
             }}
             initialLayout={{ width: layout.width }}
           />
-          <FloatingButton onPress={() => setVisibleAddTodoAlert(true)}></FloatingButton>
+          {/* <FloatingButton onPress={() => setVisibleAddTodoAlert(true)}></FloatingButton> */}
+          <FloatingButton onPress={() => navigation.navigate('Map')}></FloatingButton>
           <TextInputDialog
             visible={visibleAddTodoAlert}
             title={'Todo追加'}
