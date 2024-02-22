@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import TodoTaskService from '../services/TodoTaskService';
 import TodoTabService from '../services/TodoTabService';
 import { TabContext } from '../contexts/TabContext';
+import { API_KEY } from '@env';
 
 export default function MapScreen({ route }) {
   const { taskId, tabName } = route.params ?? '';
@@ -20,6 +21,8 @@ export default function MapScreen({ route }) {
   const mapViewRef = useRef();
   const [text, setText] = useState('');
   const [mileage, setMileage] = useState();
+  const [saveFlg, setSaveFlg] = useState(false);
+  const [courseFlg, setCourseFlg] = useState(false);
 
   const { mapReload } = useContext(TabContext);
 
@@ -93,6 +96,12 @@ export default function MapScreen({ route }) {
   const handleChange = (value) => {
     setDistance(value);
     setSelectedDistance(Number(value));
+    if (value) {
+      setCourseFlg(true);
+    } else {
+      setCourseFlg(false);
+      setSaveFlg(false);
+    }
   };
 
   const onChangeText = (newText) => {
@@ -172,6 +181,7 @@ export default function MapScreen({ route }) {
     if (count > 1) {
       setCount(0);
       setDestination(null);
+      setSaveFlg(false);
 
       return Alert.alert('エラー', 'ルートの設定に失敗しました。', [{ text: 'OK' }]);
     }
@@ -187,10 +197,11 @@ export default function MapScreen({ route }) {
     setMileage(Math.round(resultDistance * 10) / 10);
 
     setIsResult(true);
+    setSaveFlg(true);
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, marginHorizontal: 'auto' }}>
       {origin && (
         <MapView
           ref={mapViewRef}
@@ -204,31 +215,49 @@ export default function MapScreen({ route }) {
             longitudeDelta: destination ? Math.abs(destination.longitude - origin.longitude) * 2.5 : 0.0121,
           }}>
           {isResult && <Marker coordinate={destination} />}
-          <MapViewDirections origin={origin} destination={destination} apikey="" strokeWidth={3} strokeColor="blue" onReady={handleDirectionsReady} />
+          <MapViewDirections
+            origin={origin}
+            destination={destination}
+            apikey={API_KEY}
+            strokeWidth={3}
+            strokeColor="blue"
+            onReady={handleDirectionsReady}
+          />
         </MapView>
       )}
-      <View style={{ flex: 0.5, marginVertical: 10 }}>
-        <Text style={{ marginVertical: 10, marginLeft: 15 }}>コース名</Text>
+      <View style={{ flex: 0.5, marginVertical: 10, marginHorizontal: 15 }}>
+        <Text style={{ marginVertical: 10 }}>コース名</Text>
         <TextInput style={pickerSelectStyles.input} onChangeText={onChangeText} value={text} placeholder="タイトルを入力してください。" />
-        <Text style={{ marginVertical: 10, marginLeft: 15 }}>走行距離</Text>
+        <Text style={{ marginVertical: 10 }}>走行距離</Text>
         <RNPickerSelect
           onValueChange={handleChange}
           items={tabList}
           style={pickerSelectStyles}
           placeholder={{ label: '選択してください', value: 0 }}
           value={selectedDistance}
-          Icon={() => <Text style={{ position: 'absolute', right: 75, top: 10, fontSize: 18, color: '#789' }}>▼</Text>}
+          Icon={() => <Text style={{ position: 'absolute', right: 45, top: 10, fontSize: 18, color: '#789' }}>▼</Text>}
           onDonePress={() => {}}
         />
-        <View style={{ flexDirection: 'row' }}>{mileage && <Text style={{ marginVertical: 10, marginLeft: 30 }}>{mileage}km</Text>}</View>
-        <View style={{ flexDirection: 'row', marginVertical: 30 }}>
+        {mileage && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 50 }}>
+              <Text style={{ fontSize: 20 }}>片道</Text>
+              <Text style={{ marginVertical: 10, marginLeft: 30, fontSize: 20 }}>{mileage}km</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 20 }}>往復</Text>
+              <Text style={{ marginVertical: 10, marginLeft: 30, fontSize: 20 }}>{mileage * 2}km</Text>
+            </View>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', marginVertical: 20 }}>
           <TouchableOpacity
             activeOpacity={1}
             onPress={onPress}
             style={{
               width: 150,
               height: 60,
-              backgroundColor: '#167476',
+              backgroundColor: courseFlg ? '#167476' : '#16747680',
               marginVertical: 10,
               marginHorizontal: 30,
               borderRadius: 10,
@@ -241,10 +270,11 @@ export default function MapScreen({ route }) {
             <TouchableOpacity
               activeOpacity={1}
               onPress={rootEdit}
+              disabled={!saveFlg}
               style={{
-                width: 150,
+                width: 100,
                 height: 60,
-                backgroundColor: '#ff2222',
+                backgroundColor: saveFlg ? '#ff2222' : '#ff222280',
                 marginVertical: 10,
                 marginHorizontal: 10,
                 borderRadius: 10,
@@ -257,17 +287,18 @@ export default function MapScreen({ route }) {
             <TouchableOpacity
               activeOpacity={1}
               onPress={rootSave}
+              disabled={!saveFlg}
               style={{
                 width: 100,
                 height: 60,
-                backgroundColor: '#ff2222',
+                backgroundColor: saveFlg ? '#ff2222' : '#ff222280',
                 marginVertical: 10,
                 marginHorizontal: 10,
                 borderRadius: 10,
                 justifyContent: 'center',
                 alignItems: 'center',
               }}>
-              <Text style={{ fontSize: 18 }}>保存する</Text>
+              <Text style={{ fontSize: 18, color: 'white' }}>保存する</Text>
             </TouchableOpacity>
           )}
         </View>
